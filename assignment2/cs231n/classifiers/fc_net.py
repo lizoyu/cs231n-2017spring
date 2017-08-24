@@ -256,19 +256,7 @@ class FullyConnectedNet(object):
         cache = {}
         hidden_size = self.num_layers - 1
 
-
-        if self.use_batchnorm and self.use_dropout:
-            # input data to the first hidden layer
-            out, cache[1] = affine_norm_relu_drop_forward(
-                            X, self.params['W1'], self.params['b1'], self.params['gamma1'], self.params['beta1'],
-                            self.bn_params[0], self.dropout_param)
-
-            # pass forward following hidden layers
-            for i in range(hidden_size-1):
-                out, cache[i+2] = affine_norm_relu_drop_forward(
-                    out, self.params['W'+str(i+2)], self.params['b'+str(i+2)], self.params['gamma'+str(i+2)],
-                    self.params['beta'+str(i+2)], self.bn_params[i+1], self.dropout_param)
-        elif self.use_batchnorm:
+        if self.use_batchnorm:
             # input data to the first hidden layer
             out, cache[1] = affine_norm_relu_forward(
                             X, self.params['W1'], self.params['b1'], self.params['gamma1'], self.params['beta1'],
@@ -323,13 +311,7 @@ class FullyConnectedNet(object):
         grads['b'+str(hidden_size+1)] += self.reg * self.params['b'+str(hidden_size+1)]
 
         # hidden layers
-        if self.use_batchnorm and self.use_dropout:
-            for i in range(hidden_size,0,-1):
-                dhidden, grads['W'+str(i)], grads['b'+str(i)], grads['gamma'+str(i)], grads['beta'+str(i)] = \
-                    affine_norm_relu_drop_backward(dhidden, cache[i])
-                grads['W'+str(i)] += self.reg * self.params['W'+str(i)]
-                grads['b'+str(i)] += self.reg * self.params['b'+str(i)]
-        elif self.use_batchnorm:
+        if self.use_batchnorm:
             for i in range(hidden_size,0,-1):
                 dhidden, grads['W'+str(i)], grads['b'+str(i)], grads['gamma'+str(i)], grads['beta'+str(i)] = \
                     affine_norm_relu_backward(dhidden, cache[i])
@@ -374,37 +356,4 @@ def affine_norm_relu_backward(dout, cache):
     da = relu_backward(dout, relu_cache)
     db, dgamma, dbeta = batchnorm_backward(da, norm_cache)
     dx, dw, db = affine_backward(db, fc_cache)
-    return dx, dw, db, dgamma, dbeta
-
-def affine_norm_relu_drop_forward(x, w, b, gamma, beta, bn_param, dropout_param):
-    """
-    Convenience layer that perorms an affine transform with batch normalization
-    followed by a ReLU with dropout
-
-    Inputs:
-    - x: Input to the affine layer
-    - w, b: Weights for the affine layer
-    - gamma, beta, bn_param: parameters for the batch normaliztion layer
-
-    Returns a tuple of:
-    - out: Output from the ReLU
-    - cache: Object to give to the backward pass
-    """
-    a, fc_cache = affine_forward(x, w, b)
-    b, norm_cache = batchnorm_forward(a, gamma, beta, bn_param)
-    c, relu_cache = relu_forward(b)
-    out, dropout_cache = dropout_forward(c, dropout_param)
-    cache = (fc_cache, norm_cache, relu_cache, dropout_cache)
-    return out, cache
-
-
-def affine_norm_relu_drop_backward(dout, cache):
-    """
-    Backward pass for the affine-batch normalization-relu-dropout convenience layer
-    """
-    fc_cache, norm_cache, relu_cache, dropout_cache = cache
-    da = dropout_backward(dout, dropout_cache)
-    db = relu_backward(da, relu_cache)
-    dc, dgamma, dbeta = batchnorm_backward(db, norm_cache)
-    dx, dw, db = affine_backward(dc, fc_cache)
     return dx, dw, db, dgamma, dbeta
