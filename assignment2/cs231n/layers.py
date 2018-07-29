@@ -440,6 +440,7 @@ def conv_backward_naive(dout, cache):
     dout_reshaped = dout.transpose(1,2,3,0).reshape(F,-1)
     dw = np.dot(dout_reshaped, X_col.T).reshape(w.shape)
     dx = col2im_indices(np.dot(W_col.T, dout_reshaped), x.shape, HH, WW, pad, stride)
+    # (C*k1*k2,F)(F,Ho*Wo*N) -> (C*k1*k2,Ho*Wo*N) -> (C*k1*k2,Ho*Wo,N)
     db = np.sum(dout, (0,2,3))
     ###########################################################################
     #                             END OF YOUR CODE                            #
